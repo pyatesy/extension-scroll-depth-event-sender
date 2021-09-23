@@ -1,0 +1,111 @@
+{
+  "plugin_type": "widget",
+  "name": "Scroll Depth Event Sender",
+  "edit_page_url": "https://www.optimizely.com/",
+  "form_schema": [
+    {
+      "default_value": "scrolldepth",
+      "field_type": "text",
+      "name": "event",
+      "label": "Optimizely Event API Name",
+      "options": null
+    },
+    {
+      "default_value": "true",
+      "field_type": "toggle",
+      "name": "event_fire_25",
+      "label": "Send Event at 25% Scroll Depth",
+      "options": {
+        "choices": [
+          {
+            "value": "true",
+            "label": "Yes"
+          },
+          {
+            "value": "false",
+            "label": "No"
+          }
+        ]
+      }
+    },
+    {
+      "default_value": "true",
+      "field_type": "toggle",
+      "name": "event_fire_50",
+      "label": "Send Event at 50% Scroll Depth",
+      "options": {
+        "choices": [
+          {
+            "value": "true",
+            "label": "Yes"
+          },
+          {
+            "value": "false",
+            "label": "No"
+          }
+        ]
+      }
+    },
+    {
+      "default_value": "true",
+      "field_type": "toggle",
+      "name": "event_fire_75",
+      "label": "Send Event at 75% Scroll Depth",
+      "options": {
+        "choices": [
+          {
+            "value": "true",
+            "label": "Yes"
+          },
+          {
+            "value": "false",
+            "label": "No"
+          }
+        ]
+      }
+    },
+    {
+      "default_value": "true",
+      "field_type": "toggle",
+      "name": "event_fire_100",
+      "label": "Send Event at 100% Scroll Depth",
+      "options": {
+        "choices": [
+          {
+            "value": "true",
+            "label": "Yes"
+          },
+          {
+            "value": "false",
+            "label": "No"
+          }
+        ]
+      }
+    },
+    {
+      "default_value": "true",
+      "field_type": "toggle",
+      "name": "debug",
+      "label": "Console Log Debug",
+      "options": {
+        "choices": [
+          {
+            "value": "true",
+            "label": "Yes"
+          },
+          {
+            "value": "false",
+            "label": "No"
+          }
+        ]
+      }
+    }
+  ],
+  "description": "Option to choose to send an event to Optimizely when a user scrolls to 25%, 50%, 75% and 100%",
+  "options": {
+    "apply_js": "/*\nOptimizely Scroll Depth Extension\nAuthor: Phil Yates (phil@optimizely.com)\n\nScroll Depth script from\nhttps://github.com/nicholasblexrud/js-scrolldepth\n\nInstructions:\n1. Setup a Custom Event in Optimizely and collect the API Name - insert this into the Event API Name text box\n2. Save and enable the extension\n3. Choose which Scroll depths you'd like to send an event to Optimizely for.\n4. Add the scroll depth extension to your experiment either on the Variation only or on both Control and Variation\n5. Add the Scroll Depth metric to your experiment increase total value per conversion or per visitor.\n\nWatch out for the Gotchas - You'll need to add the extension to all variation you want to measure scroll depth for.\n*/\n\nvar scrollver = \"[Optimizely Scrolldepth 1.1]:\";\n\nfunction sendEvent(scrollDepthPercentage){\n  \t\t\tif(extension.debug === \"true\"){\n        \tconsole.log(scrollver,' Sending Event for ', scrollDepthPercentage, \"%\");\n        }\n\n                    \t\twindow['optimizely'] = window['optimizely'] || [];\n                        window['optimizely'].push({\n                          type: \"event\",\n                          eventName: extension.event,\n                          tags: {                       \n                            value: scrollDepthPercentage // Optional as float\n                          }\n                        });\n}\n\n(function (window) {\n    'use strict';\n\n        // fire-off baseline event\n  \t\t\tif(extension.debug === \"true\"){\n        \tconsole.log(scrollver,'baseline');\n        }\n\n        var cache = [];\n\n        /*\n         * inArray function borrowed from:\n         * jQuery 1.10.1\n         * http://jquery.com/\n         */\n        function inArray(elem, array) {\n            var i, length;\n            for (i = 0, length = array.length; i < length; i++) {\n                if (array[i] === elem) {\n                    return i;\n                }\n            }\n            return -1;\n        }\n\n        /*\n         * Each function borrowed from:\n         * jQuery 1.10.1\n         * http://jquery.com/\n         */\n        function each(object, callback) {\n            var name;\n\n            for (name in object) {\n                if (object.hasOwnProperty(name) && callback.call(object[name], name, object[name]) === false) {\n                    break;\n                }\n            }\n        }\n\n        /*\n         * Throttle function borrowed from:\n         * Underscore.js 1.5.2\n         * http://underscorejs.org\n         * (c) 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors\n         * Underscore may be freely distributed under the MIT license.\n         */\n        function throttle(func, wait) {\n            var context, args, result;\n            var timeout = null;\n            var previous = 0;\n            var later = function () {\n                previous = new Date;\n                timeout = null;\n                result = func.apply(context, args);\n            };\n            return function () {\n                var now = new Date;\n                if (!previous) {\n                    previous = now;\n                }\n                var remaining = wait - (now - previous);\n                context = this;\n                args = arguments;\n                if (remaining <= 0) {\n                    clearTimeout(timeout);\n                    timeout = null;\n                    previous = now;\n                    result = func.apply(context, args);\n                } else if (!timeout) {\n                    timeout = setTimeout(later, remaining);\n                }\n                return result;\n            };\n        }\n\n        function calculatePercentages(docHeight) {\n            return {\n                '25%': parseInt(docHeight * 0.25, 10),\n                '50%': parseInt(docHeight * 0.50, 10),\n                '75%': parseInt(docHeight * 0.75, 10),\n                // 1px cushion to trigger 100% event in iOS\n                '100%': docHeight - 5\n            };\n        }\n\n        function checkPercentages(percentages, scrollDistance) {\n            each(percentages, function (key, val) {\n                if (inArray(key, cache) === -1 && scrollDistance >= val) {\n                  \n                    \t\t\tif(extension.debug === \"true\"){\n                            console.log(scrollver,' Scrolled to', key, \"%\");\n                          }\n                            \n                  \t\t\t\tif(key === \"25%\" && extension.event_fire_25 === \"true\"){\n                            sendEvent(25);\n                          }\n                  \n                          if(key === \"50%\" && extension.event_fire_50 === \"true\"){\n                            sendEvent(50);\n                          }\n                  \n                          if(key === \"75%\" && extension.event_fire_75 === \"true\"){\n                            sendEvent(75);\n                          }\n                  \n                         \tif(key === \"100%\" && extension.event_fire_100 === \"true\"){\n                            sendEvent(100);\n                          }\n\n                    cache.push(key);\n                }\n            });\n        }\n\n        window.onscroll = throttle(function () {\n\n          /*\n           * We calculate document and window height on each scroll event to\n           * account for dynamic DOM changes.\n           */\n\n            var body = document.body,\n                html = document.documentElement,\n                docHeight = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight),\n                winHeight = window.innerHeight || html.clientHeight,\n                scrollTop = body.scrollTop || html.scrollTop,\n\n                // recalculate percentages on every scroll\n                percentages = calculatePercentages(docHeight),\n\n                // see how far we've scrolled\n                scrollDistance = scrollTop + winHeight;\n\n            // if we've fired off all percentages, then return\n            if (cache.length >= 4) {\n                return;\n            }\n\n            // check for percentage scrolled and see if it matches any of our percentages\n            checkPercentages(percentages, scrollDistance);\n\n        }, 500);\n}(window));\n\n/*var utils = optimizely.get('utils');\n\nutils.waitForElement('body')\n  .then(function(elem) {\n    // Prepend the extension html to the body\n    elem.insertAdjacentHTML('afterbegin', extension.$html);\n  });*/\n",
+    "html": "",
+    "css": "",
+    "undo_js": "var extensionElement = document.getElementById('optimizely-extension-' + extension.$instance);\nif (extensionElement) {\n  extensionElement.parentElement.removeChild(extensionElement);\n}\n"
+  }
+}
